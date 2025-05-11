@@ -220,14 +220,15 @@
       }
 
       const positionSize = riskAmount / stopLossPerUnit;
-      const roundedSize = Math.floor(positionSize);
+      const totalPositionValue = positionSize * entryPrice;
 
       const resultText = `
         <strong>Result:</strong><br>
         Symbol: ${symbol}<br>
         Risk: $${riskAmount.toFixed(2)}<br>
         Per Unit Risk: $${stopLossPerUnit.toFixed(2)}<br>
-        Position Size: ${roundedSize} units
+        Position Size: ${positionSize.toFixed(2)} units<br>
+        Max Position Value: $${totalPositionValue.toFixed(2)}
       `;
       document.getElementById('result').innerHTML = resultText;
 
@@ -240,7 +241,8 @@
         entryPrice,
         stopLoss,
         riskAmount: riskAmount.toFixed(2),
-        positionSize: roundedSize,
+        positionSize: positionSize.toFixed(2),
+        totalPositionValue: totalPositionValue.toFixed(2),
         perUnitRisk: stopLossPerUnit.toFixed(2)
       });
     }
@@ -264,7 +266,8 @@
           <div><strong>${item.date}</strong> — ${item.symbol}</div>
           Acc: $${item.accountSize}, Risk: ${item.riskType === 'percent' ? item.riskValue + '%' : '$' + item.riskValue}<br>
           Entry: ${item.entryPrice}, SL: ${item.stopLoss}<br>
-          ➤ Risk: $${item.riskAmount}, Size: ${item.positionSize} units
+          ➤ Risk: $${item.riskAmount}, Size: ${item.positionSize} units<br>
+          ➤ Max Value: $${item.totalPositionValue}
         `;
         container.appendChild(div);
       });
