@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trade Position Calculator</title>
+  <style>
+    :root {
+      --bg: #f4f4f4;
+      --text: #000;
+      --card: #fff;
+    }
+    body.dark {
+      --bg: #121212;
+      --text: #f9f9f9;
+      --card: #1f1f1f;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+      transition: background 0.3s, color 0.3s;
+    }
+    h1 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .result, .history {
+      margin-top: 25px;
+      padding: 15px;
+      background: var(--card);
+      border-radius: 8px;
+    }
+    .history-entry {
+      border-top: 1px solid #ccc;
+      margin-top: 10px;
+      padding-top: 10px;
+    }
+    .toggle-btn {
+      float: right;
+      margin-top: -45px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Trade Position Calculator</h1>
+  <button class="toggle-btn" onclick="toggleTheme()">🌓 Toggle Mode</button>
+
+  <label for="accountSize">Account Size ($)</label>
+  <input type="number" id="accountSize" placeholder="e.g. 10000">
+
+  <label for="riskPercent">Risk % per Trade</label>
+  <input type="number" id="riskPercent" placeholder="e.g. 1">
+
+  <label for="entryPrice">Entry Price</label>
+  <input type="number" id="entryPrice" placeholder="e.g. 50">
+
+  <label for="stopLoss">Stop Loss Price</label>
+  <input type="number" id="stopLoss" placeholder="e.g. 48">
+
+  <button onclick="calculate()">Calculate</button>
+
+  <div class="result" id="result"></div>
+
+  <div class="history" id="history">
+    <strong>Trade History:</strong>
+    <div id="historyList"></div>
+  </div>
+
+  <script>
+    // Dark mode toggle
+    function toggleTheme() {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+    }
+
+    // Load saved theme
+    window.onload = () => {
+      if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark');
+      }
+      loadHistory();
+    };
+
+    function calculate() {
+      const accountSize = parseFloat(document.getElementById('accountSize').value);
+      const riskPercent = parseFloat(document.getElementById('riskPercent').value);
+      const entryPrice = parseFloat(document.getElementById('entryPrice').value);
+      const stopLoss = parseFloat(document.getElementById('stopLoss').value);
+
+      if (isNaN(accountSize) || isNaN(riskPercent) || isNaN(entryPrice) || isNaN(stopLoss)) {
+        document.getElementById('result').innerHTML = '<strong>Please fill all fields with valid numbers.</strong>';
+        return;
+      }
+
+      const riskAmount = (riskPercent / 100) * accountSize;
+      const stopLossPerUnit = Math.abs(entryPrice - stopLoss);
+      if (stopLossPerUnit === 0) {
+        document.getElementById('result').innerHTML = '<strong>Stop loss must not equal entry price.</strong>';
+        return;
+      }
+
+      const positionSize = riskAmount / stopLossPerUnit;
+      const roundedPositionSize = Math.floor(positionSize);
+
+      const resultText = `
+        <strong>Results:</strong><br>
+        Risk Amount: $${riskAmount.toFixed(2)}<br>
+        Position Size: ${roundedPositionSize} units<br>
+        Per Unit Risk: $${stopLossPerUnit.toFixed(2)}
+      `;
+      document.getElementById('result').innerHTML = resultText;
+
+      saveToHistory({
+        date: new Date().toLocaleString(),
+        accountSize,
+        riskPercent,
+        entryPrice,
+        stopLoss,
+        riskAmount: riskAmount.toFixed(2),
+        positionSize: roundedPositionSize,
+        perUnitRisk: stopLossPerUnit.toFixed(2)
+      });
+    }
+
+    function saveToHistory(entry) {
+      let history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+      history.unshift(entry);
+      if (history.length > 10) history = history.slice(0, 10); // keep latest 10
+      localStorage.setItem('tradeHistory', JSON.stringify(history));
+      loadHistory();
+    }
+
+    function loadHistory() {
+      const container = document.getElementById('historyList');
+      container.innerHTML = '';
+      const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+      history.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'history-entry';
+        div.innerHTML = `
+          <div><strong>${item.date}</strong></div>
+          Acc: $${item.accountSize}, Risk: ${item.riskPercent}%, Entry: ${item.entryPrice}, SL: ${item.stopLoss}<br>
+          ➤ Risk: $${item.riskAmount}, Size: ${item.positionSize} units
+        `;
+        container.appendChild(div);
+      });
+    }
+  </script>
+</body>
+</html>
