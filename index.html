@@ -98,6 +98,18 @@
     .flex-row select {
       flex: 1;
     }
+    .slider-container {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .slider-container input {
+      width: 80%;
+      margin-right: 10px;
+    }
+    .slider-container .decimal-count {
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -153,9 +165,13 @@
       <input type="number" id="stopLoss" placeholder="e.g. 48000" />
 
       <button onclick="calculate()">Calculate</button>
-      <div class="flex-row">
-        <button id="toggleDecimal" onclick="toggleDecimal()">Toggle Decimal Precision</button>
+
+      <!-- Decimal Precision Control -->
+      <div class="slider-container">
+        <input type="range" id="decimalSlider" min="0" max="8" value="2" oninput="updateDecimalCount()" />
+        <span class="decimal-count" id="decimalCount">2</span> Decimals
       </div>
+
       <div class="result" id="result"></div>
     </div>
 
@@ -168,9 +184,8 @@
   </div>
 
   <script>
-    let useDecimal = true; // Toggle for decimal precision
     let selectedSymbol = "bitcoin"; // Default symbol
-
+    let decimalPrecision = 2; // Default precision value
     const symbolEl = document.getElementById('symbol');
     const priceEl = document.getElementById('price');
     const customSymbolEl = document.getElementById('customSymbol');
@@ -220,9 +235,9 @@
       document.getElementById('riskFixedDiv').style.display = type === 'fixed' ? 'block' : 'none';
     }
 
-    function toggleDecimal() {
-      useDecimal = !useDecimal;
-      calculate(); // Recalculate with new decimal setting
+    function updateDecimalCount() {
+      decimalPrecision = document.getElementById('decimalSlider').value;
+      document.getElementById('decimalCount').innerText = decimalPrecision;
     }
 
     function calculate() {
@@ -256,7 +271,6 @@
       const positionSize = riskAmount / stopLossPerUnit;
       const totalPositionValue = positionSize * entryPrice;
 
-      const decimalPrecision = useDecimal ? 2 : 0;
       const resultText = `
         <strong>Result:</strong><br>
         Symbol: ${selectedSymbol.toUpperCase()}<br>
