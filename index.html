@@ -6,105 +6,161 @@
   <title>Trade Position Calculator</title>
   <style>
     :root {
-      --bg: #f4f4f4;
-      --text: #000;
+      --bg: #f5f5f5;
+      --text: #111;
       --card: #fff;
+      --accent: #007bff;
     }
     body.dark {
       --bg: #121212;
-      --text: #f9f9f9;
-      --card: #1f1f1f;
+      --text: #f5f5f5;
+      --card: #1e1e1e;
+      --accent: #1e90ff;
     }
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 600px;
-      margin: auto;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 1rem;
       transition: background 0.3s, color 0.3s;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
     }
     h1 {
       text-align: center;
     }
+    .card {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
     label {
+      margin-top: 10px;
       display: block;
-      margin-top: 15px;
+      font-weight: bold;
     }
     input {
       width: 100%;
       padding: 10px;
-      margin-top: 5px;
+      margin-top: 4px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
     }
     button {
       width: 100%;
       padding: 12px;
-      margin-top: 20px;
-      background-color: #007bff;
+      margin-top: 15px;
+      background: var(--accent);
       color: white;
       border: none;
       font-size: 16px;
+      border-radius: 6px;
       cursor: pointer;
     }
     button:hover {
-      background-color: #0056b3;
+      opacity: 0.9;
+    }
+    .toggle-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .crypto-prices {
+      display: flex;
+      gap: 10px;
+      justify-content: space-around;
+      text-align: center;
+      flex-wrap: wrap;
+    }
+    .crypto-card {
+      flex: 1;
+      min-width: 100px;
+      padding: 10px;
+      background: var(--card);
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
     .result, .history {
-      margin-top: 25px;
-      padding: 15px;
-      background: var(--card);
-      border-radius: 8px;
+      font-size: 15px;
+      margin-top: 10px;
     }
     .history-entry {
       border-top: 1px solid #ccc;
       margin-top: 10px;
       padding-top: 10px;
     }
-    .toggle-btn {
-      float: right;
-      margin-top: -45px;
-    }
   </style>
 </head>
 <body>
-  <h1>Trade Position Calculator</h1>
-  <button class="toggle-btn" onclick="toggleTheme()">🌓 Toggle Mode</button>
+  <button class="toggle-btn" onclick="toggleTheme()">🌓</button>
 
-  <label for="accountSize">Account Size ($)</label>
-  <input type="number" id="accountSize" placeholder="e.g. 10000">
+  <div class="container">
+    <h1>Trade Position Calculator</h1>
 
-  <label for="riskPercent">Risk % per Trade</label>
-  <input type="number" id="riskPercent" placeholder="e.g. 1">
+    <!-- Live Prices -->
+    <div class="crypto-prices" id="cryptoPrices">
+      <div class="crypto-card" id="btc">BTC: $...</div>
+      <div class="crypto-card" id="eth">ETH: $...</div>
+      <div class="crypto-card" id="bnb">BNB: $...</div>
+    </div>
 
-  <label for="entryPrice">Entry Price</label>
-  <input type="number" id="entryPrice" placeholder="e.g. 50">
+    <!-- Calculator -->
+    <div class="card">
+      <label>Account Size ($)</label>
+      <input type="number" id="accountSize" placeholder="e.g. 10000" />
 
-  <label for="stopLoss">Stop Loss Price</label>
-  <input type="number" id="stopLoss" placeholder="e.g. 48">
+      <label>Risk % per Trade</label>
+      <input type="number" id="riskPercent" placeholder="e.g. 1" />
 
-  <button onclick="calculate()">Calculate</button>
+      <label>Entry Price</label>
+      <input type="number" id="entryPrice" placeholder="e.g. 50000" />
 
-  <div class="result" id="result"></div>
+      <label>Stop Loss Price</label>
+      <input type="number" id="stopLoss" placeholder="e.g. 48000" />
 
-  <div class="history" id="history">
-    <strong>Trade History:</strong>
-    <div id="historyList"></div>
+      <button onclick="calculate()">Calculate</button>
+
+      <div class="result" id="result"></div>
+    </div>
+
+    <!-- History -->
+    <div class="card history" id="history">
+      <strong>Trade History:</strong>
+      <div id="historyList"></div>
+    </div>
   </div>
 
   <script>
-    // Dark mode toggle
     function toggleTheme() {
       document.body.classList.toggle('dark');
       localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
     }
 
-    // Load saved theme
-    window.onload = () => {
+    function loadTheme() {
       if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark');
       }
-      loadHistory();
-    };
+    }
+
+    function fetchPrices() {
+      fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin&vs_currencies=usd')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('btc').innerText = `BTC: $${data.bitcoin.usd}`;
+          document.getElementById('eth').innerText = `ETH: $${data.ethereum.usd}`;
+          document.getElementById('bnb').innerText = `BNB: $${data.binancecoin.usd}`;
+        });
+    }
 
     function calculate() {
       const accountSize = parseFloat(document.getElementById('accountSize').value);
@@ -113,14 +169,15 @@
       const stopLoss = parseFloat(document.getElementById('stopLoss').value);
 
       if (isNaN(accountSize) || isNaN(riskPercent) || isNaN(entryPrice) || isNaN(stopLoss)) {
-        document.getElementById('result').innerHTML = '<strong>Please fill all fields with valid numbers.</strong>';
+        document.getElementById('result').innerHTML = '<strong>Please fill all fields correctly.</strong>';
         return;
       }
 
       const riskAmount = (riskPercent / 100) * accountSize;
       const stopLossPerUnit = Math.abs(entryPrice - stopLoss);
+
       if (stopLossPerUnit === 0) {
-        document.getElementById('result').innerHTML = '<strong>Stop loss must not equal entry price.</strong>';
+        document.getElementById('result').innerHTML = '<strong>Stop loss must differ from entry.</strong>';
         return;
       }
 
@@ -128,7 +185,7 @@
       const roundedPositionSize = Math.floor(positionSize);
 
       const resultText = `
-        <strong>Results:</strong><br>
+        <strong>Result:</strong><br>
         Risk Amount: $${riskAmount.toFixed(2)}<br>
         Position Size: ${roundedPositionSize} units<br>
         Per Unit Risk: $${stopLossPerUnit.toFixed(2)}
@@ -150,7 +207,7 @@
     function saveToHistory(entry) {
       let history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
       history.unshift(entry);
-      if (history.length > 10) history = history.slice(0, 10); // keep latest 10
+      history = history.slice(0, 10);
       localStorage.setItem('tradeHistory', JSON.stringify(history));
       loadHistory();
     }
@@ -159,7 +216,7 @@
       const container = document.getElementById('historyList');
       container.innerHTML = '';
       const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
-      history.forEach((item, index) => {
+      history.forEach(item => {
         const div = document.createElement('div');
         div.className = 'history-entry';
         div.innerHTML = `
@@ -170,6 +227,12 @@
         container.appendChild(div);
       });
     }
+
+    // Init
+    loadTheme();
+    loadHistory();
+    fetchPrices();
+    setInterval(fetchPrices, 30000); // every 30 seconds
   </script>
 </body>
 </html>
