@@ -118,6 +118,11 @@
         <option value="cardano">ADA</option>
         <option value="dogecoin">DOGE</option>
       </select>
+
+      <!-- Custom Coin Input -->
+      <label for="customSymbol">Or Enter Custom Coin Symbol</label>
+      <input type="text" id="customSymbol" placeholder="e.g. dogecoin" oninput="fetchCustomPrice()" />
+
       <div class="crypto-price" id="price">Current Price: $...</div>
     </div>
 
@@ -148,6 +153,9 @@
       <input type="number" id="stopLoss" placeholder="e.g. 48000" />
 
       <button onclick="calculate()">Calculate</button>
+      <div class="flex-row">
+        <button id="toggleDecimal" onclick="toggleDecimal()">Toggle Decimal Precision</button>
+      </div>
       <div class="result" id="result"></div>
     </div>
 
@@ -160,8 +168,12 @@
   </div>
 
   <script>
+    let useDecimal = true; // Toggle for decimal precision
+    let selectedSymbol = "bitcoin"; // Default symbol
+
     const symbolEl = document.getElementById('symbol');
     const priceEl = document.getElementById('price');
+    const customSymbolEl = document.getElementById('customSymbol');
 
     function toggleTheme() {
       document.body.classList.toggle('dark');
@@ -176,6 +188,7 @@
 
     function fetchPrice() {
       const symbol = symbolEl.value;
+      selectedSymbol = symbol;
       fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${symbol}&vs_currencies=usd`)
         .then(res => res.json())
         .then(data => {
@@ -184,10 +197,32 @@
         });
     }
 
+    function fetchCustomPrice() {
+      const customSymbol = customSymbolEl.value.trim().toLowerCase();
+      if (customSymbol) {
+        fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${customSymbol}&vs_currencies=usd`)
+          .then(res => res.json())
+          .then(data => {
+            if (data[customSymbol]) {
+              const price = data[customSymbol].usd;
+              priceEl.innerText = `Current Price: $${price}`;
+              selectedSymbol = customSymbol; // Update the selected symbol to custom
+            } else {
+              priceEl.innerText = `Custom Coin not found!`;
+            }
+          });
+      }
+    }
+
     function toggleRiskInput() {
       const type = document.getElementById('riskType').value;
       document.getElementById('riskPercentDiv').style.display = type === 'percent' ? 'block' : 'none';
       document.getElementById('riskFixedDiv').style.display = type === 'fixed' ? 'block' : 'none';
+    }
+
+    function toggleDecimal() {
+      useDecimal = !useDecimal;
+      calculate(); // Recalculate with new decimal setting
     }
 
     function calculate() {
@@ -197,7 +232,6 @@
       const riskFixed = parseFloat(document.getElementById('riskFixed').value);
       const entryPrice = parseFloat(document.getElementById('entryPrice').value);
       const stopLoss = parseFloat(document.getElementById('stopLoss').value);
-      const symbol = symbolEl.options[symbolEl.selectedIndex].text;
 
       if (isNaN(accountSize) || isNaN(entryPrice) || isNaN(stopLoss)) {
         document.getElementById('result').innerHTML = '<strong>Please fill all required fields.</strong>';
@@ -222,26 +256,27 @@
       const positionSize = riskAmount / stopLossPerUnit;
       const totalPositionValue = positionSize * entryPrice;
 
+      const decimalPrecision = useDecimal ? 2 : 0;
       const resultText = `
         <strong>Result:</strong><br>
-        Symbol: ${symbol}<br>
+        Symbol: ${selectedSymbol.toUpperCase()}<br>
         Risk: $${riskAmount.toFixed(2)}<br>
         Per Unit Risk: $${stopLossPerUnit.toFixed(2)}<br>
-        Position Size: ${positionSize.toFixed(2)} units<br>
+        Position Size: ${positionSize.toFixed(decimalPrecision)} units<br>
         Max Position Value: $${totalPositionValue.toFixed(2)}
       `;
       document.getElementById('result').innerHTML = resultText;
 
       saveToHistory({
         date: new Date().toLocaleString(),
-        symbol,
+        symbol: selectedSymbol.toUpperCase(),
         accountSize,
         riskType,
         riskValue: riskType === 'percent' ? riskPercent : riskFixed,
         entryPrice,
         stopLoss,
         riskAmount: riskAmount.toFixed(2),
-        positionSize: positionSize.toFixed(2),
+        positionSize: positionSize.toFixed(decimalPrecision),
         totalPositionValue: totalPositionValue.toFixed(2),
         perUnitRisk: stopLossPerUnit.toFixed(2)
       });
