@@ -226,40 +226,41 @@
     }
 
     async function fetchCustomPrice() {
-      const input = customSymbolEl.value.trim().toLowerCase();
-      if (!input) {
-        priceEl.innerText = `Current Price: $...`;
-        return;
+  const input = customSymbolEl.value.trim().toLowerCase();
+  if (!input) {
+    priceEl.innerText = `Current Price: $...`;
+    return;
+  }
+
+  if (!allCoins.length) await loadCoinList();
+
+  let coin = allCoins.find(c => c.id === input);
+
+  if (!coin) {
+    coin = allCoins.find(c => c.symbol.toLowerCase() === input);
+  }
+
+  if (!coin) {
+    priceEl.innerText = `Custom Coin not found! Please check the symbol or coin id.`;
+    return;
+  }
+
+  selectedSymbol = coin.id;
+  fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin.id}&vs_currencies=usd`)
+    .then(res => res.json())
+    .then(data => {
+      if (data[coin.id]) {
+        const price = data[coin.id].usd;
+        priceEl.innerText = `Current Price: $${price}`;
+      } else {
+        priceEl.innerText = `Price not available`;
       }
+    })
+    .catch(() => {
+      priceEl.innerText = `Failed to fetch price.`;
+    });
+}
 
-      if (!allCoins.length) await loadCoinList();
-
-      let coin = allCoins.find(c => c.id === input);
-
-      if (!coin) {
-        coin = allCoins.find(c => c.symbol.toLowerCase() === input);
-      }
-
-      if (!coin) {
-        priceEl.innerText = `Custom Coin not found!`;
-        return;
-      }
-
-      selectedSymbol = coin.id;
-      fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin.id}&vs_currencies=usd`)
-        .then(res => res.json())
-        .then(data => {
-          if (data[coin.id]) {
-            const price = data[coin.id].usd;
-            priceEl.innerText = `Current Price: $${price}`;
-          } else {
-            priceEl.innerText = `Price not available`;
-          }
-        })
-        .catch(() => {
-          priceEl.innerText = `Failed to fetch price.`;
-        });
-    }
 
     function handleSymbolChange() {
       const symbol = symbolEl.value;
