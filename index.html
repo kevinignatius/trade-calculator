@@ -121,7 +121,7 @@
     <!-- Symbol + Price -->
     <div class="card">
       <label>Crypto Symbol</label>
-      <select id="symbol" onchange="handleSymbolChange()">
+      <select id="symbol" onchange="fetchPrice()">
         <option value="bitcoin">BTC</option>
         <option value="ethereum">ETH</option>
         <option value="binancecoin">BNB</option>
@@ -129,19 +129,16 @@
         <option value="ripple">XRP</option>
         <option value="cardano">ADA</option>
         <option value="dogecoin">DOGE</option>
-        <option value="custom">Custom</option> <!-- Added custom option -->
       </select>
 
       <!-- Custom Coin Input -->
-      <div id="customSymbolDiv" style="display:none;">
-        <label for="customSymbol">Enter Custom Coin Symbol</label>
-        <input type="text" id="customSymbol" placeholder="e.g. dogecoin" oninput="fetchCustomPrice()" />
-      </div>
+      <label for="customSymbol">Or Enter Custom Coin Symbol</label>
+      <input type="text" id="customSymbol" placeholder="e.g. dogecoin" oninput="fetchCustomPrice()" />
 
       <div class="crypto-price" id="price">Current Price: $...</div>
     </div>
 
-    <!-- Other Content -->
+    <!-- Calculator -->
     <div class="card">
       <label>Account Size ($)</label>
       <input type="number" id="accountSize" placeholder="e.g. 10000" />
@@ -192,8 +189,6 @@
     const symbolEl = document.getElementById('symbol');
     const priceEl = document.getElementById('price');
     const customSymbolEl = document.getElementById('customSymbol');
-    const customSymbolDiv = document.getElementById('customSymbolDiv');
-    let allCoins = [];
 
     function toggleTheme() {
       document.body.classList.toggle('dark');
@@ -201,10 +196,7 @@
     }
 
     function loadTheme() {
-      const stored = localStorage.getItem('theme');
-      if (stored) {
-        document.body.classList.toggle('dark', stored === 'dark');
-      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark');
       }
     }
@@ -220,87 +212,135 @@
         });
     }
 
-    async function loadCoinList() {
-      const res = await fetch("https://api.coingecko.com/api/v3/coins/list");
-      allCoins = await res.json();
-    }
-
-    // Update the fetchPrice function to trigger on input change
-async function fetchCustomPrice() {
-  const input = customSymbolEl.value.trim().toLowerCase();
-  if (!input) {
-    priceEl.innerText = `Current Price: $...`; // Reset price if input is empty
-    return;
-  }
-
-  if (!allCoins.length) await loadCoinList();
-
-  // Search for the coin by ID or symbol
-  let coin = allCoins.find(c => c.id === input);
-  
-  if (!coin) {
-    coin = allCoins.find(c => c.symbol.toLowerCase() === input);
-  }
-
-  if (!coin) {
-    priceEl.innerText = `Custom Coin not found!`; // Show an error if not found
-    return;
-  }
-
-  selectedSymbol = coin.id; // Set the selected symbol to the found coin's id
-  
-  try {
-    const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin.id}&vs_currencies=usd`);
-    const data = await response.json();
-    if (data[coin.id]) {
-      const price = data[coin.id].usd;
-      priceEl.innerText = `Current Price: $${price}`; // Update price
-    } else {
-      priceEl.innerText = `Price not available`; // Fallback message
-    }
-  } catch (error) {
-    priceEl.innerText = `Failed to fetch price.`; // Error handling
-  }
-}
-
-// Update the fetchPrice function for symbol dropdown change
-function fetchPrice() {
-  const symbol = symbolEl.value; // Get selected symbol from dropdown
-  selectedSymbol = symbol; // Set selected symbol to the dropdown value
-
-  fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${symbol}&vs_currencies=usd`)
-    .then(res => res.json())
-    .then(data => {
-      const price = data[symbol].usd;
-      priceEl.innerText = `Current Price: $${price}`; // Update price with selected symbol
-    })
-    .catch(() => {
-      priceEl.innerText = `Failed to fetch price.`; // Error handling
-    });
-}
-
-// Listen for changes to the custom coin input field to trigger price fetch
-customSymbolEl.addEventListener('input', fetchCustomPrice);
-
-// Initial fetch when the page loads
-fetchPrice();
-
-
-    function handleSymbolChange() {
-      const symbol = symbolEl.value;
-      if (symbol === "custom") {
-        customSymbolDiv.style.display = "block";
-      } else {
-        customSymbolDiv.style.display = "none";
-        fetchPrice();
+    function fetchCustomPrice() {
+      const customSymbol = customSymbolEl.value.trim().toLowerCase();
+      if (customSymbol) {
+        fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${customSymbol}&vs_currencies=usd`)
+          .then(res => res.json())
+          .then(data => {
+            if (data[customSymbol]) {
+              const price = data[customSymbol].usd;
+              priceEl.innerText = `Current Price: $${price}`;
+              selectedSymbol = customSymbol; // Update the selected symbol to custom
+            } else {
+              priceEl.innerText = `Custom Coin not found!`;
+            }
+          });
       }
     }
 
-    loadCoinList();
+    function toggleRiskInput() {
+      const type = document.getElementById('riskType').value;
+      document.getElementById('riskPercentDiv').style.display = type === 'percent' ? 'block' : 'none';
+      document.getElementById('riskFixedDiv').style.display = type === 'fixed' ? 'block' : 'none';
+    }
+
+    function updateDecimalCount() {
+      decimalPrecision = document.getElementById('decimalSlider').value;
+      document.getElementById('decimalCount').innerText = decimalPrecision;
+    }
+
+    function calculate() {
+      const accountSize = parseFloat(document.getElementById('accountSize').value);
+      const riskType = document.getElementById('riskType').value;
+      const riskPercent = parseFloat(document.getElementById('riskPercent').value);
+      const riskFixed = parseFloat(document.getElementById('riskFixed').value);
+      const entryPrice = parseFloat(document.getElementById('entryPrice').value);
+      const stopLoss = parseFloat(document.getElementById('stopLoss').value);
+
+      if (isNaN(accountSize) || isNaN(entryPrice) || isNaN(stopLoss)) {
+        document.getElementById('result').innerHTML = '<strong>Please fill all required fields.</strong>';
+        return;
+      }
+
+      let riskAmount;
+      if (riskType === 'percent') {
+        if (isNaN(riskPercent)) return alert("Enter valid % risk");
+        riskAmount = (riskPercent / 100) * accountSize;
+      } else {
+        if (isNaN(riskFixed)) return alert("Enter valid fixed $ risk");
+        riskAmount = riskFixed;
+      }
+
+      const stopLossPerUnit = Math.abs(entryPrice - stopLoss);
+      if (stopLossPerUnit === 0) {
+        document.getElementById('result').innerHTML = '<strong>Stop loss must differ from entry.</strong>';
+        return;
+      }
+
+      const positionSize = riskAmount / stopLossPerUnit;
+      const totalPositionValue = positionSize * entryPrice;
+
+      const resultText = `
+        <strong>Result:</strong><br>
+        Symbol: ${selectedSymbol.toUpperCase()}<br>
+        Risk: $${riskAmount.toFixed(2)}<br>
+        Per Unit Risk: $${stopLossPerUnit.toFixed(2)}<br>
+        Position Size: ${positionSize.toFixed(decimalPrecision)} units<br>
+        Max Position Value: $${totalPositionValue.toFixed(2)}
+      `;
+      document.getElementById('result').innerHTML = resultText;
+
+      saveToHistory({
+        date: new Date().toLocaleString(),
+        symbol: selectedSymbol.toUpperCase(),
+        accountSize,
+        riskType,
+        riskValue: riskType === 'percent' ? riskPercent : riskFixed,
+        entryPrice,
+        stopLoss,
+        riskAmount: riskAmount.toFixed(2),
+        positionSize: positionSize.toFixed(decimalPrecision),
+        totalPositionValue: totalPositionValue.toFixed(2),
+        perUnitRisk: stopLossPerUnit.toFixed(2)
+      });
+    }
+
+    function saveToHistory(entry) {
+      let history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+      history.unshift(entry);
+      history = history.slice(0, 20);
+      localStorage.setItem('tradeHistory', JSON.stringify(history));
+      loadHistory();
+    }
+
+    function loadHistory() {
+      const container = document.getElementById('historyList');
+      container.innerHTML = '';
+      const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+      history.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'history-entry';
+        div.innerHTML = `
+          <div><strong>${item.date}</strong> — ${item.symbol}</div>
+          Acc: $${item.accountSize}, Risk: ${item.riskType === 'percent' ? item.riskValue + '%' : '$' + item.riskValue}<br>
+          Entry: ${item.entryPrice}, SL: ${item.stopLoss}<br>
+          ➤ Risk: $${item.riskAmount}, Size: ${item.positionSize} units<br>
+          ➤ Max Value: $${item.totalPositionValue}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function exportHistory() {
+      const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
+      if (!history.length) return alert("No history to export.");
+      const headers = Object.keys(history[0]).join(',');
+      const rows = history.map(row => Object.values(row).join(','));
+      const csv = [headers, ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'trade_history.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
     loadTheme();
+    loadHistory();
     fetchPrice();
     setInterval(fetchPrice, 30000);
-
   </script>
 </body>
 </html>
