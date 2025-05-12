@@ -121,7 +121,7 @@
     <!-- Symbol + Price -->
     <div class="card">
       <label>Crypto Symbol</label>
-      <select id="symbol" onchange="fetchPrice()">
+      <select id="symbol" onchange="handleSymbolChange()">
         <option value="bitcoin">BTC</option>
         <option value="ethereum">ETH</option>
         <option value="binancecoin">BNB</option>
@@ -129,16 +129,19 @@
         <option value="ripple">XRP</option>
         <option value="cardano">ADA</option>
         <option value="dogecoin">DOGE</option>
+        <option value="custom">Custom</option> <!-- Added custom option -->
       </select>
 
       <!-- Custom Coin Input -->
-      <label for="customSymbol">Or Enter Custom Coin Symbol</label>
-      <input type="text" id="customSymbol" placeholder="e.g. dogecoin" oninput="fetchCustomPrice()" />
+      <div id="customSymbolDiv" style="display:none;">
+        <label for="customSymbol">Enter Custom Coin Symbol</label>
+        <input type="text" id="customSymbol" placeholder="e.g. dogecoin" oninput="fetchCustomPrice()" />
+      </div>
 
       <div class="crypto-price" id="price">Current Price: $...</div>
     </div>
 
-    <!-- Calculator -->
+    <!-- Other Content -->
     <div class="card">
       <label>Account Size ($)</label>
       <input type="number" id="accountSize" placeholder="e.g. 10000" />
@@ -189,6 +192,7 @@
     const symbolEl = document.getElementById('symbol');
     const priceEl = document.getElementById('price');
     const customSymbolEl = document.getElementById('customSymbol');
+    const customSymbolDiv = document.getElementById('customSymbolDiv');
 
     function toggleTheme() {
       document.body.classList.toggle('dark');
@@ -196,13 +200,13 @@
     }
 
     function loadTheme() {
-  const stored = localStorage.getItem('theme');
-  if (stored) {
-    document.body.classList.toggle('dark', stored === 'dark');
-  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.body.classList.add('dark');
-  }
-}
+      const stored = localStorage.getItem('theme');
+      if (stored) {
+        document.body.classList.toggle('dark', stored === 'dark');
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+      }
+    }
 
     function fetchPrice() {
       const symbol = symbolEl.value;
@@ -215,162 +219,61 @@
         });
     }
 
-let allCoins = [];
+    let allCoins = [];
 
-async function loadCoinList() {
-  const res = await fetch("https://api.coingecko.com/api/v3/coins/list");
-  allCoins = await res.json();
-}
+    async function loadCoinList() {
+      const res = await fetch("https://api.coingecko.com/api/v3/coins/list");
+      allCoins = await res.json();
+    }
 
-async function fetchCustomPrice() {
-  const input = customSymbolEl.value.trim().toLowerCase();
-  if (!input) return;
+    async function fetchCustomPrice() {
+      const input = customSymbolEl.value.trim().toLowerCase();
+      if (!input) return;
 
-  if (!allCoins.length) await loadCoinList(); // load if not already loaded
+      if (!allCoins.length) await loadCoinList();
 
-  // Try to find by ID first
-  let coin = allCoins.find(c => c.id === input);
-  
-  // If not found, try matching by symbol
-  if (!coin) {
-    coin = allCoins.find(c => c.symbol.toLowerCase() === input);
-  }
+      let coin = allCoins.find(c => c.id === input);
 
-  if (!coin) {
-    priceEl.innerText = `Custom Coin not found!`;
-    return;
-  }
-
-  selectedSymbol = coin.id;
-  fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin.id}&vs_currencies=usd`)
-    .then(res => res.json())
-    .then(data => {
-      if (data[coin.id]) {
-        const price = data[coin.id].usd;
-        priceEl.innerText = `Current Price: $${price}`;
-      } else {
-        priceEl.innerText = `Price not available`;
+      if (!coin) {
+        coin = allCoins.find(c => c.symbol.toLowerCase() === input);
       }
-    })
-    .catch(() => {
-      priceEl.innerText = `Failed to fetch price.`;
-    });
-}
-loadCoinList();
 
-
-    function toggleRiskInput() {
-      const type = document.getElementById('riskType').value;
-      document.getElementById('riskPercentDiv').style.display = type === 'percent' ? 'block' : 'none';
-      document.getElementById('riskFixedDiv').style.display = type === 'fixed' ? 'block' : 'none';
-    }
-
-    function updateDecimalCount() {
-      decimalPrecision = document.getElementById('decimalSlider').value;
-      document.getElementById('decimalCount').innerText = decimalPrecision;
-    }
-
-    function calculate() {
-      const accountSize = parseFloat(document.getElementById('accountSize').value);
-      const riskType = document.getElementById('riskType').value;
-      const riskPercent = parseFloat(document.getElementById('riskPercent').value);
-      const riskFixed = parseFloat(document.getElementById('riskFixed').value);
-      const entryPrice = parseFloat(document.getElementById('entryPrice').value);
-      const stopLoss = parseFloat(document.getElementById('stopLoss').value);
-
-      if (isNaN(accountSize) || isNaN(entryPrice) || isNaN(stopLoss)) {
-        document.getElementById('result').innerHTML = '<strong>Please fill all required fields.</strong>';
+      if (!coin) {
+        priceEl.innerText = `Custom Coin not found!`;
         return;
       }
 
-      let riskAmount;
-      if (riskType === 'percent') {
-        if (isNaN(riskPercent)) return alert("Enter valid % risk");
-        riskAmount = (riskPercent / 100) * accountSize;
+      selectedSymbol = coin.id;
+      fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin.id}&vs_currencies=usd`)
+        .then(res => res.json())
+        .then(data => {
+          if (data[coin.id]) {
+            const price = data[coin.id].usd;
+            priceEl.innerText = `Current Price: $${price}`;
+          } else {
+            priceEl.innerText = `Price not available`;
+          }
+        })
+        .catch(() => {
+          priceEl.innerText = `Failed to fetch price.`;
+        });
+    }
+
+    function handleSymbolChange() {
+      const symbol = symbolEl.value;
+      if (symbol === "custom") {
+        customSymbolDiv.style.display = "block";
       } else {
-        if (isNaN(riskFixed)) return alert("Enter valid fixed $ risk");
-        riskAmount = riskFixed;
+        customSymbolDiv.style.display = "none";
+        fetchPrice();
       }
-
-      const stopLossPerUnit = Math.abs(entryPrice - stopLoss);
-      if (stopLossPerUnit === 0) {
-        document.getElementById('result').innerHTML = '<strong>Stop loss must differ from entry.</strong>';
-        return;
-      }
-
-      const positionSize = riskAmount / stopLossPerUnit;
-      const totalPositionValue = positionSize * entryPrice;
-
-      const resultText = `
-        <strong>Result:</strong><br>
-        Symbol: ${selectedSymbol.toUpperCase()}<br>
-        Risk: $${riskAmount.toFixed(2)}<br>
-        Per Unit Risk: $${stopLossPerUnit.toFixed(2)}<br>
-        Position Size: ${positionSize.toFixed(decimalPrecision)} units<br>
-        Max Position Value: $${totalPositionValue.toFixed(2)}
-      `;
-      document.getElementById('result').innerHTML = resultText;
-
-      saveToHistory({
-        date: new Date().toLocaleString(),
-        symbol: selectedSymbol.toUpperCase(),
-        accountSize,
-        riskType,
-        riskValue: riskType === 'percent' ? riskPercent : riskFixed,
-        entryPrice,
-        stopLoss,
-        riskAmount: riskAmount.toFixed(2),
-        positionSize: positionSize.toFixed(decimalPrecision),
-        totalPositionValue: totalPositionValue.toFixed(2),
-        perUnitRisk: stopLossPerUnit.toFixed(2)
-      });
     }
 
-    function saveToHistory(entry) {
-      let history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
-      history.unshift(entry);
-      history = history.slice(0, 20);
-      localStorage.setItem('tradeHistory', JSON.stringify(history));
-      loadHistory();
-    }
-
-    function loadHistory() {
-      const container = document.getElementById('historyList');
-      container.innerHTML = '';
-      const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
-      history.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'history-entry';
-        div.innerHTML = `
-          <div><strong>${item.date}</strong> — ${item.symbol}</div>
-          Acc: $${item.accountSize}, Risk: ${item.riskType === 'percent' ? item.riskValue + '%' : '$' + item.riskValue}<br>
-          Entry: ${item.entryPrice}, SL: ${item.stopLoss}<br>
-          ➤ Risk: $${item.riskAmount}, Size: ${item.positionSize} units<br>
-          ➤ Max Value: $${item.totalPositionValue}
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    function exportHistory() {
-      const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
-      if (!history.length) return alert("No history to export.");
-      const headers = Object.keys(history[0]).join(',');
-      const rows = history.map(row => Object.values(row).join(','));
-      const csv = [headers, ...rows].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'trade_history.csv';
-      link.click();
-      URL.revokeObjectURL(url);
-    }
-
+    loadCoinList();
     loadTheme();
-    loadHistory();
     fetchPrice();
     setInterval(fetchPrice, 30000);
+
   </script>
 </body>
 </html>
