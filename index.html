@@ -193,6 +193,7 @@
     const priceEl = document.getElementById('price');
     const customSymbolEl = document.getElementById('customSymbol');
     const customSymbolDiv = document.getElementById('customSymbolDiv');
+    let allCoins = [];
 
     function toggleTheme() {
       document.body.classList.toggle('dark');
@@ -219,8 +220,6 @@
         });
     }
 
-    let allCoins = [];
-
     async function loadCoinList() {
       const res = await fetch("https://api.coingecko.com/api/v3/coins/list");
       allCoins = await res.json();
@@ -228,7 +227,10 @@
 
     async function fetchCustomPrice() {
       const input = customSymbolEl.value.trim().toLowerCase();
-      if (!input) return;
+      if (!input) {
+        priceEl.innerText = `Current Price: $...`;
+        return;
+      }
 
       if (!allCoins.length) await loadCoinList();
 
