@@ -196,10 +196,13 @@
     }
 
     function loadTheme() {
-      if (localStorage.getItem('theme') === 'dark') {
-        document.body.classList.add('dark');
-      }
-    }
+  const stored = localStorage.getItem('theme');
+  if (stored) {
+    document.body.classList.toggle('dark', stored === 'dark');
+  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.body.classList.add('dark');
+  }
+}
 
     function fetchPrice() {
       const symbol = symbolEl.value;
@@ -212,22 +215,49 @@
         });
     }
 
-    function fetchCustomPrice() {
-      const customSymbol = customSymbolEl.value.trim().toLowerCase();
-      if (customSymbol) {
-        fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${customSymbol}&vs_currencies=usd`)
-          .then(res => res.json())
-          .then(data => {
-            if (data[customSymbol]) {
-              const price = data[customSymbol].usd;
-              priceEl.innerText = `Current Price: $${price}`;
-              selectedSymbol = customSymbol; // Update the selected symbol to custom
-            } else {
-              priceEl.innerText = `Custom Coin not found!`;
-            }
-          });
+let allCoins = [];
+
+async function loadCoinList() {
+  const res = await fetch("https://api.coingecko.com/api/v3/coins/list");
+  allCoins = await res.json();
+}
+
+async function fetchCustomPrice() {
+  const input = customSymbolEl.value.trim().toLowerCase();
+  if (!input) return;
+
+  if (!allCoins.length) await loadCoinList(); // load if not already loaded
+
+  // Try to find by ID first
+  let coin = allCoins.find(c => c.id === input);
+  
+  // If not found, try matching by symbol
+  if (!coin) {
+    coin = allCoins.find(c => c.symbol.toLowerCase() === input);
+  }
+
+  if (!coin) {
+    priceEl.innerText = `Custom Coin not found!`;
+    return;
+  }
+
+  selectedSymbol = coin.id;
+  fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin.id}&vs_currencies=usd`)
+    .then(res => res.json())
+    .then(data => {
+      if (data[coin.id]) {
+        const price = data[coin.id].usd;
+        priceEl.innerText = `Current Price: $${price}`;
+      } else {
+        priceEl.innerText = `Price not available`;
       }
-    }
+    })
+    .catch(() => {
+      priceEl.innerText = `Failed to fetch price.`;
+    });
+}
+loadCoinList();
+
 
     function toggleRiskInput() {
       const type = document.getElementById('riskType').value;
