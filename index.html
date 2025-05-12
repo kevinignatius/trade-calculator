@@ -2,345 +2,185 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Trade Position Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🖩 Trade Position Calculator</title>
+  <link rel="icon" href="https://cdn-icons-png.freepik.com/256/7028/7028016.png?semt=ais_hybrid" type="image/png">
   <style>
     :root {
-      --bg: #f5f5f5;
-      --text: #111;
-      --card: #fff;
-      --accent: #007bff;
+      --bg: #ffffff;
+      --text: #000000;
+      --card: #f0f0f0;
     }
-    body.dark {
+    [data-theme="dark"] {
       --bg: #121212;
-      --text: #f5f5f5;
+      --text: #ffffff;
       --card: #1e1e1e;
-      --accent: #1e90ff;
     }
     body {
+      margin: 0;
+      font-family: Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 1rem;
       transition: background 0.3s, color 0.3s;
+      padding: 20px;
     }
     .container {
-      max-width: 750px;
+      max-width: 600px;
       margin: auto;
     }
-    h1 {
+    .header {
+      position: relative;
       text-align: center;
+      margin-bottom: 20px;
+    }
+    .toggle-btn {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: var(--text);
+    }
+    h1 img {
+      height: 32px;
+      vertical-align: middle;
+      margin-right: 8px;
     }
     .card {
       background: var(--card);
       padding: 20px;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
-    label {
-      margin-top: 10px;
+    label, input, select, button {
       display: block;
-      font-weight: bold;
+      width: 100%;
+      margin-bottom: 15px;
     }
     input, select {
-      width: 100%;
       padding: 10px;
-      margin-top: 4px;
       border: 1px solid #ccc;
       border-radius: 6px;
       font-size: 16px;
     }
     button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 15px;
-      background: var(--accent);
+      background: #007bff;
       color: white;
       border: none;
-      font-size: 16px;
       border-radius: 6px;
+      padding: 10px;
       cursor: pointer;
     }
-    button:hover {
-      opacity: 0.9;
-    }
-    .toggle-btn {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: none;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
-    }
-    .crypto-price {
-      text-align: center;
+    .result {
       font-size: 18px;
-      margin-bottom: 10px;
-    }
-    .result, .history {
-      font-size: 15px;
-      margin-top: 10px;
-    }
-    .history-entry {
-      border-top: 1px solid #ccc;
-      margin-top: 10px;
-      padding-top: 10px;
-    }
-    .flex-row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin-top: 10px;
-    }
-    .flex-row select {
-      flex: 1;
-    }
-    .slider-container {
-      display: flex;
-      align-items: center;
-      margin-top: 10px;
-    }
-    .slider-container input {
-      width: 80%;
-      margin-right: 10px;
-    }
-    .slider-container .decimal-count {
-      font-weight: bold;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <button class="toggle-btn" onclick="toggleTheme()">🌓</button>
-
   <div class="container">
-    <h1>Trade Position Calculator</h1>
-
-    <!-- Symbol + Price -->
-    <div class="card">
-      <label>Crypto Symbol</label>
-      <select id="symbol" onchange="fetchPrice()">
-        <option value="bitcoin">BTC</option>
-        <option value="ethereum">ETH</option>
-        <option value="binancecoin">BNB</option>
-        <option value="solana">SOL</option>
-        <option value="ripple">XRP</option>
-        <option value="cardano">ADA</option>
-        <option value="dogecoin">DOGE</option>
-      </select>
-
-      <!-- Custom Coin Input -->
-      <label for="customSymbol">Or Enter Custom Coin Symbol</label>
-      <input type="text" id="customSymbol" placeholder="e.g. dogecoin" oninput="fetchCustomPrice()" />
-
-      <div class="crypto-price" id="price">Current Price: $...</div>
+    <div class="header">
+      <h1><img src="https://cdn-icons-png.freepik.com/256/7028/7028016.png?semt=ais_hybrid" alt="Calculator">Trade Position Calculator</h1>
+      <button class="toggle-btn" onclick="toggleTheme()">🌃</button>
     </div>
-
-    <!-- Calculator -->
     <div class="card">
-      <label>Account Size ($)</label>
-      <input type="number" id="accountSize" placeholder="e.g. 10000" />
-
-      <label>Risk Type</label>
-      <select id="riskType" onchange="toggleRiskInput()">
-        <option value="percent">Risk %</option>
-        <option value="fixed">Fixed $ Risk</option>
+      <label for="symbol">Symbol</label>
+      <select id="symbol">
+        <option value="bitcoin">BTC/USD</option>
+        <option value="ethereum">ETH/USD</option>
+        <option value="binancecoin">BNB/USD</option>
+        <option value="custom">Custom</option>
       </select>
 
-      <div id="riskPercentDiv">
-        <label>Risk %</label>
-        <input type="number" id="riskPercent" placeholder="e.g. 1" />
-      </div>
-      <div id="riskFixedDiv" style="display:none;">
-        <label>Risk Amount ($)</label>
-        <input type="number" id="riskFixed" placeholder="e.g. 100" />
-      </div>
+      <input type="text" id="customSymbol" placeholder="Enter custom coin ID (e.g., solana)" style="display: none;" />
 
-      <label>Entry Price</label>
-      <input type="number" id="entryPrice" placeholder="e.g. 50000" />
+      <label for="entry">Entry Price</label>
+      <input type="number" id="entry" />
 
-      <label>Stop Loss Price</label>
-      <input type="number" id="stopLoss" placeholder="e.g. 48000" />
+      <label for="stop">Stop Loss</label>
+      <input type="number" id="stop" />
+
+      <label for="risk">Risk Amount ($)</label>
+      <input type="number" id="risk" />
+
+      <label for="decimal">Decimal Places</label>
+      <input type="number" id="decimal" value="2" min="0" max="8" />
 
       <button onclick="calculate()">Calculate</button>
 
-      <!-- Decimal Precision Control -->
-      <div class="slider-container">
-        <input type="range" id="decimalSlider" min="0" max="8" value="2" oninput="updateDecimalCount()" />
-        <span class="decimal-count" id="decimalCount">2</span> Decimals
-      </div>
-
       <div class="result" id="result"></div>
-    </div>
-
-    <!-- History -->
-    <div class="card history" id="history">
-      <strong>Trade History:</strong>
-      <button onclick="exportHistory()">Export CSV</button>
-      <div id="historyList"></div>
+      <div class="result" id="price"></div>
     </div>
   </div>
 
   <script>
-    let selectedSymbol = "bitcoin"; // Default symbol
-    let decimalPrecision = 2; // Default precision value
-    const symbolEl = document.getElementById('symbol');
-    const priceEl = document.getElementById('price');
-    const customSymbolEl = document.getElementById('customSymbol');
+    let selectedSymbol = 'bitcoin';
 
-    function toggleTheme() {
-      document.body.classList.toggle('dark');
-      localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
-    }
-
-    function loadTheme() {
-      if (localStorage.getItem('theme') === 'dark') {
-        document.body.classList.add('dark');
+    document.getElementById('symbol').addEventListener('change', function() {
+      selectedSymbol = this.value;
+      const customInput = document.getElementById('customSymbol');
+      if (selectedSymbol === 'custom') {
+        customInput.style.display = 'block';
+      } else {
+        customInput.style.display = 'none';
+        fetchPrice();
       }
-    }
+    });
+
+    document.getElementById('customSymbol').addEventListener('blur', function() {
+      selectedSymbol = this.value.toLowerCase().trim();
+      fetchPrice();
+    });
 
     function fetchPrice() {
-      const symbol = symbolEl.value;
-      selectedSymbol = symbol;
-      fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${symbol}&vs_currencies=usd`)
+      const priceEl = document.getElementById('price');
+      if (!selectedSymbol) return;
+      fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${selectedSymbol}&vs_currencies=usd`)
         .then(res => res.json())
         .then(data => {
-          const price = data[symbol].usd;
-          priceEl.innerText = `Current Price: $${price}`;
+          if (data[selectedSymbol]) {
+            const price = data[selectedSymbol].usd;
+            priceEl.innerText = `Current Price: $${price}`;
+          } else {
+            priceEl.innerText = `Custom Coin not found! Please check the symbol and try again.`;
+          }
+        })
+        .catch(() => {
+          priceEl.innerText = `Error fetching data for ${selectedSymbol}`;
         });
     }
 
-    function fetchCustomPrice() {
-      const customSymbol = customSymbolEl.value.trim().toLowerCase();
-      if (customSymbol) {
-        fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${customSymbol}&vs_currencies=usd`)
-          .then(res => res.json())
-          .then(data => {
-            if (data[customSymbol]) {
-              const price = data[customSymbol].usd;
-              priceEl.innerText = `Current Price: $${price}`;
-              selectedSymbol = customSymbol; // Update the selected symbol to custom
-            } else {
-              priceEl.innerText = `Custom Coin not found!`;
-            }
-          });
-      }
-    }
-
-    function toggleRiskInput() {
-      const type = document.getElementById('riskType').value;
-      document.getElementById('riskPercentDiv').style.display = type === 'percent' ? 'block' : 'none';
-      document.getElementById('riskFixedDiv').style.display = type === 'fixed' ? 'block' : 'none';
-    }
-
-    function updateDecimalCount() {
-      decimalPrecision = document.getElementById('decimalSlider').value;
-      document.getElementById('decimalCount').innerText = decimalPrecision;
-    }
-
     function calculate() {
-      const accountSize = parseFloat(document.getElementById('accountSize').value);
-      const riskType = document.getElementById('riskType').value;
-      const riskPercent = parseFloat(document.getElementById('riskPercent').value);
-      const riskFixed = parseFloat(document.getElementById('riskFixed').value);
-      const entryPrice = parseFloat(document.getElementById('entryPrice').value);
-      const stopLoss = parseFloat(document.getElementById('stopLoss').value);
+      const entry = parseFloat(document.getElementById('entry').value);
+      const stop = parseFloat(document.getElementById('stop').value);
+      const risk = parseFloat(document.getElementById('risk').value);
+      const decimals = parseInt(document.getElementById('decimal').value);
 
-      if (isNaN(accountSize) || isNaN(entryPrice) || isNaN(stopLoss)) {
-        document.getElementById('result').innerHTML = '<strong>Please fill all required fields.</strong>';
+      const resultEl = document.getElementById('result');
+
+      if (!entry || !stop || !risk || isNaN(decimals)) {
+        resultEl.innerText = 'Please fill all inputs correctly.';
         return;
       }
 
-      let riskAmount;
-      if (riskType === 'percent') {
-        if (isNaN(riskPercent)) return alert("Enter valid % risk");
-        riskAmount = (riskPercent / 100) * accountSize;
-      } else {
-        if (isNaN(riskFixed)) return alert("Enter valid fixed $ risk");
-        riskAmount = riskFixed;
-      }
+      const riskPerUnit = Math.abs(entry - stop);
+      const positionSize = risk / riskPerUnit;
+      const maxAmountUsed = entry * positionSize;
 
-      const stopLossPerUnit = Math.abs(entryPrice - stopLoss);
-      if (stopLossPerUnit === 0) {
-        document.getElementById('result').innerHTML = '<strong>Stop loss must differ from entry.</strong>';
-        return;
-      }
-
-      const positionSize = riskAmount / stopLossPerUnit;
-      const totalPositionValue = positionSize * entryPrice;
-
-      const resultText = `
-        <strong>Result:</strong><br>
-        Symbol: ${selectedSymbol.toUpperCase()}<br>
-        Risk: $${riskAmount.toFixed(2)}<br>
-        Per Unit Risk: $${stopLossPerUnit.toFixed(2)}<br>
-        Position Size: ${positionSize.toFixed(decimalPrecision)} units<br>
-        Max Position Value: $${totalPositionValue.toFixed(2)}
+      resultEl.innerHTML = `
+        Position Size: <strong>${positionSize.toFixed(decimals)}</strong><br>
+        Max Amount Used: <strong>$${maxAmountUsed.toFixed(2)}</strong>
       `;
-      document.getElementById('result').innerHTML = resultText;
-
-      saveToHistory({
-        date: new Date().toLocaleString(),
-        symbol: selectedSymbol.toUpperCase(),
-        accountSize,
-        riskType,
-        riskValue: riskType === 'percent' ? riskPercent : riskFixed,
-        entryPrice,
-        stopLoss,
-        riskAmount: riskAmount.toFixed(2),
-        positionSize: positionSize.toFixed(decimalPrecision),
-        totalPositionValue: totalPositionValue.toFixed(2),
-        perUnitRisk: stopLossPerUnit.toFixed(2)
-      });
     }
 
-    function saveToHistory(entry) {
-      let history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
-      history.unshift(entry);
-      history = history.slice(0, 20);
-      localStorage.setItem('tradeHistory', JSON.stringify(history));
-      loadHistory();
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      document.documentElement.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
     }
 
-    function loadHistory() {
-      const container = document.getElementById('historyList');
-      container.innerHTML = '';
-      const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
-      history.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'history-entry';
-        div.innerHTML = `
-          <div><strong>${item.date}</strong> — ${item.symbol}</div>
-          Acc: $${item.accountSize}, Risk: ${item.riskType === 'percent' ? item.riskValue + '%' : '$' + item.riskValue}<br>
-          Entry: ${item.entryPrice}, SL: ${item.stopLoss}<br>
-          ➤ Risk: $${item.riskAmount}, Size: ${item.positionSize} units<br>
-          ➤ Max Value: $${item.totalPositionValue}
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    function exportHistory() {
-      const history = JSON.parse(localStorage.getItem('tradeHistory') || '[]');
-      if (!history.length) return alert("No history to export.");
-      const headers = Object.keys(history[0]).join(',');
-      const rows = history.map(row => Object.values(row).join(','));
-      const csv = [headers, ...rows].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'trade_history.csv';
-      link.click();
-      URL.revokeObjectURL(url);
-    }
-
-    loadTheme();
-    loadHistory();
-    fetchPrice();
-    setInterval(fetchPrice, 30000);
+    fetchPrice(); // Initial fetch
   </script>
 </body>
 </html>
