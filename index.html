@@ -225,41 +225,65 @@
       allCoins = await res.json();
     }
 
-    async function fetchCustomPrice() {
+    // Update the fetchPrice function to trigger on input change
+async function fetchCustomPrice() {
   const input = customSymbolEl.value.trim().toLowerCase();
   if (!input) {
-    priceEl.innerText = `Current Price: $...`;
+    priceEl.innerText = `Current Price: $...`; // Reset price if input is empty
     return;
   }
 
   if (!allCoins.length) await loadCoinList();
 
+  // Search for the coin by ID or symbol
   let coin = allCoins.find(c => c.id === input);
-
+  
   if (!coin) {
     coin = allCoins.find(c => c.symbol.toLowerCase() === input);
   }
 
   if (!coin) {
-    priceEl.innerText = `Custom Coin not found! Please check the symbol or coin id.`;
+    priceEl.innerText = `Custom Coin not found!`; // Show an error if not found
     return;
   }
 
-  selectedSymbol = coin.id;
-  fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin.id}&vs_currencies=usd`)
+  selectedSymbol = coin.id; // Set the selected symbol to the found coin's id
+  
+  try {
+    const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin.id}&vs_currencies=usd`);
+    const data = await response.json();
+    if (data[coin.id]) {
+      const price = data[coin.id].usd;
+      priceEl.innerText = `Current Price: $${price}`; // Update price
+    } else {
+      priceEl.innerText = `Price not available`; // Fallback message
+    }
+  } catch (error) {
+    priceEl.innerText = `Failed to fetch price.`; // Error handling
+  }
+}
+
+// Update the fetchPrice function for symbol dropdown change
+function fetchPrice() {
+  const symbol = symbolEl.value; // Get selected symbol from dropdown
+  selectedSymbol = symbol; // Set selected symbol to the dropdown value
+
+  fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${symbol}&vs_currencies=usd`)
     .then(res => res.json())
     .then(data => {
-      if (data[coin.id]) {
-        const price = data[coin.id].usd;
-        priceEl.innerText = `Current Price: $${price}`;
-      } else {
-        priceEl.innerText = `Price not available`;
-      }
+      const price = data[symbol].usd;
+      priceEl.innerText = `Current Price: $${price}`; // Update price with selected symbol
     })
     .catch(() => {
-      priceEl.innerText = `Failed to fetch price.`;
+      priceEl.innerText = `Failed to fetch price.`; // Error handling
     });
 }
+
+// Listen for changes to the custom coin input field to trigger price fetch
+customSymbolEl.addEventListener('input', fetchCustomPrice);
+
+// Initial fetch when the page loads
+fetchPrice();
 
 
     function handleSymbolChange() {
